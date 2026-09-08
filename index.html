@@ -11,10 +11,11 @@
 :root{
   --bg:#FBF7F0; --ink:#2A2119; --surface:#FFFFFF; --line:#E3D9C9;
   --muted:#8A7B67; --plum:#6B3C52; --leaf:#4E7A55; --honey:#C08A2E;
+  --safe:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);font-family:'Assistant',system-ui,sans-serif;
-  -webkit-font-smoothing:antialiased;padding-bottom:70px}
+  -webkit-font-smoothing:antialiased;padding-bottom:calc(76px + var(--safe));overflow-x:hidden}
 .wrap{max-width:620px;margin:0 auto;padding:0 16px}
 
 header{padding:34px 0 22px;text-align:center;border-bottom:1px solid var(--line);margin-bottom:20px}
@@ -23,43 +24,83 @@ header p{color:var(--muted);font-size:14px;font-weight:300;margin-top:8px}
 
 .tabs{display:flex;gap:6px;margin-bottom:18px;position:sticky;top:0;background:var(--bg);
   padding:10px 0;z-index:5}
-.tab{flex:1;background:none;border:1px solid var(--line);color:var(--muted);font-family:inherit;
-  font-size:15px;padding:10px 4px;border-radius:999px;cursor:pointer}
+.tab{flex:1;min-width:0;background:none;border:1px solid var(--line);color:var(--muted);
+  font-family:inherit;font-size:15px;padding:10px 4px;border-radius:999px;cursor:pointer}
 .tab.on{background:var(--plum);border-color:var(--plum);color:#fff;font-weight:600}
 
 .group{background:var(--surface);border:1px solid var(--line);border-radius:16px;
   padding:16px 16px 10px;margin-bottom:14px}
-.group h2{font-family:'Frank Ruhl Libre',serif;font-weight:500;font-size:21px;margin-bottom:2px}
-.group .meta{color:var(--muted);font-size:13px;font-weight:300;margin-bottom:12px}
+.group h2{font-family:'Frank Ruhl Libre',serif;font-weight:500;font-size:21px;margin-bottom:2px;
+  overflow-wrap:anywhere}
+.group .meta{color:var(--muted);font-size:13px;font-weight:300;margin-bottom:12px;overflow-wrap:anywhere}
 .group .meta b{color:var(--leaf);font-weight:600}
 
-.row{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+.row{display:flex;align-items:flex-start;gap:10px;padding:11px 2px;
+  border-bottom:1px solid var(--line);cursor:pointer}
+.row.noline{border-bottom:none}
 .row:last-of-type{border-bottom:none}
-.box{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--line);flex:0 0 auto;
-  display:grid;place-items:center;font-size:14px;color:#fff}
+.box{width:24px;height:24px;border-radius:7px;border:1.5px solid var(--line);flex:0 0 auto;
+  display:grid;place-items:center;font-size:14px;color:#fff;margin-top:1px}
 .row.done .box{background:var(--leaf);border-color:var(--leaf)}
 .row.done .t{color:var(--muted);text-decoration:line-through}
-.t{font-size:16px;flex:1}
-.who{font-size:12px;color:var(--plum);background:#F3EAEE;padding:3px 10px;border-radius:999px;white-space:nowrap}
-.x{background:none;border:none;color:var(--line);font-size:19px;cursor:pointer;padding:0 4px}
-.row:hover .x{color:var(--muted)}
+.main{flex:1 1 auto;min-width:0}
+.t{font-size:16px;line-height:1.35;overflow-wrap:anywhere}
+.sub{font-size:12px;color:var(--leaf);margin-top:3px;overflow-wrap:anywhere}
+.side{flex:0 0 auto;display:flex;align-items:center;gap:2px;margin-top:1px}
+.who{font-size:12px;color:var(--plum);background:#F3EAEE;border:1px solid transparent;
+  padding:4px 9px;border-radius:999px;max-width:104px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;font-family:inherit;cursor:pointer;display:block}
+.who.empty{color:var(--muted);background:transparent;border-color:var(--line)}
+.who.buy{color:#8A5A00;background:#FBEFD6}
+.who.frz{color:#2F5E86;background:#E3EFF8}
+.x{background:none;border:none;color:#CFC3AE;font-size:22px;line-height:1;cursor:pointer;
+  padding:2px 6px;font-family:inherit}
 
-.add{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
-.add input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:10px;
-  padding:10px 12px;font-family:inherit;font-size:15px;color:var(--ink)}
-.add input.w{flex:0 0 96px}
-.add button{background:var(--honey);border:none;color:#fff;font-family:inherit;font-weight:600;
-  font-size:15px;padding:10px 18px;border-radius:10px;cursor:pointer}
+.whopanel{border-bottom:1px solid var(--line);padding:0 2px 12px}
+.whorow{display:flex;gap:8px}
+.whopanel input{flex:1 1 auto;min-width:0;background:var(--bg);border:1px solid var(--plum);
+  border-radius:10px;padding:9px 12px;font-family:inherit;font-size:16px;color:var(--ink)}
+.whopanel .wsave{flex:0 0 auto;background:var(--plum);border:none;color:#fff;font-family:inherit;
+  font-weight:600;font-size:14px;padding:9px 16px;border-radius:10px;cursor:pointer}
+.wpresets{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.preset{font-family:inherit;font-size:13px;padding:6px 12px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.preset.buy{color:#8A5A00;background:#FBEFD6;border-color:#EBD9B4}
+.preset.frz{color:#2F5E86;background:#E3EFF8;border-color:#C6DCEC}
+.preset.clr{color:var(--muted)}
 
-.newgroup{display:flex;gap:8px;margin:6px 0 20px}
-.newgroup input{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;
-  padding:11px 12px;font-family:inherit;font-size:15px}
-.newgroup button{background:var(--surface);border:1px solid var(--line);color:var(--ink);
+.add{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;
+  border-top:1px dashed var(--line)}
+.add input{flex:1 1 130px;min-width:0;background:var(--bg);border:1px solid var(--line);
+  border-radius:10px;padding:10px 12px;font-family:inherit;font-size:16px;color:var(--ink)}
+.add input.w{flex:0 1 104px}
+.add button{flex:0 0 auto;background:var(--honey);border:none;color:#fff;font-family:inherit;
+  font-weight:600;font-size:15px;padding:10px 18px;border-radius:10px;cursor:pointer}
+
+.newgroup{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 20px}
+.newgroup input{flex:1 1 150px;min-width:0;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:11px 12px;font-family:inherit;font-size:16px}
+.newgroup button{flex:0 0 auto;background:var(--surface);border:1px solid var(--line);color:var(--ink);
   font-family:inherit;font-size:15px;padding:11px 16px;border-radius:10px;cursor:pointer}
 
 .state{text-align:center;color:var(--muted);font-size:14px;padding:40px 0;line-height:1.7}
 .bar{position:fixed;inset-inline:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
-  padding:12px 16px;text-align:center;font-size:13px;color:var(--muted)}
+  padding:12px 16px calc(12px + var(--safe));text-align:center;font-size:13px;color:var(--muted);
+  display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
+.bar button{background:none;border:none;color:var(--plum);font-family:inherit;font-size:13px;
+  font-weight:600;text-decoration:underline;cursor:pointer;padding:2px 4px}
+
+.gate{position:fixed;inset:0;background:rgba(42,33,25,.55);display:grid;place-items:center;
+  z-index:50;padding:20px}
+.gate[hidden]{display:none}
+.gatecard{background:var(--surface);border-radius:18px;padding:26px 22px;max-width:340px;width:100%;
+  text-align:center}
+.gatecard h2{font-family:'Frank Ruhl Libre',serif;font-weight:500;font-size:24px;margin-bottom:6px}
+.gatecard p{color:var(--muted);font-size:14px;font-weight:300;line-height:1.6;margin-bottom:16px}
+.gatecard input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;
+  padding:12px;font-family:inherit;font-size:16px;text-align:center;margin-bottom:12px;color:var(--ink)}
+.gatecard button{width:100%;background:var(--plum);border:none;color:#fff;font-family:inherit;
+  font-weight:600;font-size:16px;padding:12px;border-radius:10px;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid var(--honey);outline-offset:2px}
 </style>
 </head>
@@ -76,7 +117,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--honey);outline-
   </div>
   <div id="app"><div class="state">טוען…</div></div>
 </div>
-<div class="bar" id="bar">מתחבר…</div>
+<div class="bar" id="bar"><span id="barmsg">מתחבר…</span></div>
+<div class="gate" id="gate" hidden>
+  <div class="gatecard">
+    <h2>איך קוראים לך?</h2>
+    <p>כדי שנדע מי סימן מה. נשמר במכשיר הזה בלבד — לא צריך להקליד שוב.</p>
+    <input id="gname" maxlength="16" placeholder="השם שלך" autocomplete="given-name">
+    <button id="gok">יאללה</button>
+  </div>
+</div>
 
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -86,15 +135,73 @@ const sb = createClient(
   'sb_publishable_ORry7BEfcGwEoXxd13ZDNQ_DgKkuFpI'
 );
 
-let tab = 'dish', items = [];
-const app = document.getElementById('app'), bar = document.getElementById('bar');
+let tab = 'dish', items = [], editWho = null, editDraft = '';
+const app = document.getElementById('app');
+const bar = document.getElementById('bar'), gate = document.getElementById('gate');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+/* ---------- מי אני (נשמר במכשיר) ---------- */
+const NAME_KEY = 'chag_name';
+let me = '', barText = 'מתחבר…';
+try { me = localStorage.getItem(NAME_KEY) || ''; } catch (e) { me = ''; }
+
+function renderBar() {
+  bar.innerHTML = `<span>${esc(barText)}</span>` +
+    `<button id="chname">${me ? esc(me) + ' · החלפה' : 'מי אני?'}</button>`;
+  document.getElementById('chname').addEventListener('click', () => askName(me));
+}
+const setBar = msg => { barText = msg; renderBar(); };
+
+function saveName(n) {
+  me = n.trim().slice(0, 16);
+  try { localStorage.setItem(NAME_KEY, me); } catch (e) {}
+  gate.hidden = true;
+  renderBar();
+}
+function askName(initial) {
+  const inp = document.getElementById('gname');
+  inp.value = initial || me || '';
+  gate.hidden = false;
+  setTimeout(() => inp.focus(), 50);
+}
+document.getElementById('gok').addEventListener('click', () => {
+  const v = document.getElementById('gname').value.trim();
+  if (v) saveName(v);
+});
+document.getElementById('gname').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) saveName(v); }
+});
+
+/* ---------- מקור: אדם / לקנות / מהמקפיא ---------- */
+const BUY = 'לקנות', FRZ = 'מהמקפיא';
+const whoClass = w => w === BUY ? 'buy' : w === FRZ ? 'frz' : (w ? '' : 'empty');
+const whoLabel = w => w === BUY ? '🛒 ' + BUY : w === FRZ ? '❄️ ' + FRZ : w;
+const whoEmpty = () => tab === 'shop' ? '+ מי קונה' : '+ מי מכין';
+
+/* ---------- סדר כרונולוגי של הארוחות ---------- */
+const ORD = { 'א':1,'ב':2,'ג':3,'ד':4,'ה':5 };
+const DOW = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+
+function mealRank(meal) {
+  const s = String(meal || '');
+  const night = /ליל|ערב/.test(s);
+  const morning = /בוקר|צהר/.test(s);
+  if (night || morning) {
+    // ביום העברי הלילה קודם לבוקר: ליל א׳ → בוקר א׳ → ליל ב׳ → בוקר ב׳
+    const m = s.match(/([אבגדה])[׳']/);
+    const n = m ? (ORD[m[1]] || 1) : 1;
+    return 1000 + (n - 1) * 2 + (night ? 0 : 1);
+  }
+  const clean = s.replace(/[׳״'"]/g, '');
+  for (let i = 0; i < DOW.length; i++) if (clean.includes(DOW[i])) return 2000 + i;
+  return 9000;
+}
+
 async function load() {
-  const { data, error } = await sb.from('chag_items').select('*').order('meal').order('sort');
-  if (error) { bar.textContent = 'שגיאת חיבור — רעננו את הדף'; return; }
+  const { data, error } = await sb.from('chag_items').select('*').order('sort');
+  if (error) { setBar('שגיאת חיבור — רעננו את הדף'); return; }
   items = data; render();
-  bar.textContent = 'משותף לכולם · כל שינוי נשמר מיד';
+  setBar('משותף לכולם · כל שינוי נשמר מיד');
 }
 
 function render() {
@@ -105,19 +212,50 @@ function render() {
   }
   const groups = {};
   mine.forEach(i => { (groups[i.meal] ||= []).push(i); });
-  app.innerHTML = Object.entries(groups).map(([meal, list]) => {
+
+  const ordered = Object.entries(groups).sort((a, b) => {
+    const ra = mealRank(a[0]), rb = mealRank(b[0]);
+    if (ra !== rb) return ra - rb;
+    const sa = Math.min(...a[1].map(x => x.sort ?? 0));
+    const sbb = Math.min(...b[1].map(x => x.sort ?? 0));
+    if (sa !== sbb) return sa - sbb;
+    return a[0].localeCompare(b[0], 'he');
+  });
+
+  app.innerHTML = ordered.map(([meal, list]) => {
+    list.sort((x, y) => (x.sort ?? 0) - (y.sort ?? 0));
     const done = list.filter(x => x.done).length;
     const [title, ...rest] = meal.split(' · ');
     return `<section class="group">
       <h2>${esc(title)}</h2>
       <div class="meta">${rest.length ? esc(rest.join(' · ')) + ' — ' : ''}<b>${done} מתוך ${list.length}</b></div>
-      ${list.map(i => `
-        <div class="row ${i.done ? 'done' : ''}" data-id="${i.id}">
+      ${list.map(i => {
+        const editing = editWho === i.id;
+        return `
+        <div class="row ${i.done ? 'done' : ''} ${editing ? 'noline' : ''}" data-id="${i.id}">
           <div class="box">${i.done ? '✓' : ''}</div>
-          <div class="t">${esc(i.title)}</div>
-          ${i.who ? `<span class="who">${esc(i.who)}</span>` : ''}
-          <button class="x" data-del="${i.id}" aria-label="מחיקה">×</button>
-        </div>`).join('')}
+          <div class="main">
+            <div class="t">${esc(i.title)}</div>
+            ${i.done && i.done_by ? `<div class="sub">✓ סימן/ה ${esc(i.done_by)}</div>` : ''}
+          </div>
+          <div class="side">
+            <button class="who ${whoClass(i.who)}" data-who="${i.id}">${i.who ? esc(whoLabel(i.who)) : whoEmpty()}</button>
+            <button class="x" data-del="${i.id}" aria-label="מחיקה">×</button>
+          </div>
+        </div>` + (editing ? `
+        <div class="whopanel">
+          <div class="whorow">
+            <input class="whoedit" data-whoedit="${i.id}" value="${esc(editDraft)}" maxlength="16"
+                   placeholder="${tab === 'shop' ? 'מי קונה' : 'מי מכין'}">
+            <button class="wsave" data-wsave="${i.id}">שמירה</button>
+          </div>
+          <div class="wpresets">
+            <button class="preset buy" data-pid="${i.id}" data-pval="${BUY}">🛒 ${BUY}</button>
+            <button class="preset frz" data-pid="${i.id}" data-pval="${FRZ}">❄️ ${FRZ}</button>
+            <button class="preset clr" data-pid="${i.id}" data-pval="">נקה</button>
+          </div>
+        </div>` : '');
+      }).join('')}
       <div class="add">
         <input placeholder="${tab === 'shop' ? 'מה לקנות' : 'מנה'}" data-t="${esc(meal)}" maxlength="60">
         ${tab === 'dish' ? `<input class="w" placeholder="מי מכין" data-w="${esc(meal)}" maxlength="16">` : ''}
@@ -125,55 +263,139 @@ function render() {
       </div>
     </section>`;
   }).join('') + newGroup();
+
+  if (editWho) {
+    const el = app.querySelector('[data-whoedit]');
+    if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  }
 }
 
 const newGroup = () => `<div class="newgroup">
   <input id="ng" placeholder="${tab === 'shop' ? 'קטגוריה חדשה — למשל ירקות' : 'ארוחה או קטגוריה חדשה'}" maxlength="70">
   <button id="ngb">הוספה</button></div>`;
 
+/* ---------- עריכת מי מכין / לקנות / מהמקפיא ---------- */
+async function commitWho(id, value) {
+  const it = items.find(i => i.id === id);
+  editWho = null; editDraft = '';
+  if (!it) { render(); return; }
+  const next = String(value).trim().slice(0, 16);
+  if (next === (it.who || '')) { render(); return; }
+  const prev = it.who;
+  it.who = next; render();
+  const { error } = await sb.from('chag_items').update({ who: next }).eq('id', id);
+  if (error) { it.who = prev; render(); setBar('לא הצלחנו לשמור — נסו שוב'); }
+}
+
+// שומר על הפוקוס כשלוחצים על כפתור בפאנל, כדי ש-blur לא יבטל את הלחיצה
+app.addEventListener('pointerdown', e => {
+  if (e.target.closest('.whopanel button')) e.preventDefault();
+});
+app.addEventListener('keydown', e => {
+  const inp = e.target.closest('[data-whoedit]');
+  if (!inp) return;
+  if (e.key === 'Enter') { e.preventDefault(); commitWho(inp.dataset.whoedit, inp.value); }
+  if (e.key === 'Escape') { editWho = null; editDraft = ''; render(); }
+});
+app.addEventListener('input', e => {
+  const inp = e.target.closest('[data-whoedit]');
+  if (inp) editDraft = inp.value;
+});
+app.addEventListener('focusout', e => {
+  const inp = e.target.closest('[data-whoedit]');
+  if (!inp || editWho !== inp.dataset.whoedit) return;
+  const panel = inp.closest('.whopanel');
+  if (panel && e.relatedTarget && panel.contains(e.relatedTarget)) return;
+  commitWho(inp.dataset.whoedit, inp.value);
+});
+
 app.addEventListener('click', async e => {
+  const preset = e.target.closest('[data-pval]');
+  if (preset) { e.stopPropagation(); commitWho(preset.dataset.pid, preset.dataset.pval); return; }
+
+  const wsave = e.target.closest('[data-wsave]');
+  if (wsave) {
+    e.stopPropagation();
+    const inp = app.querySelector('[data-whoedit]');
+    commitWho(wsave.dataset.wsave, inp ? inp.value : '');
+    return;
+  }
+  if (e.target.closest('[data-whoedit]')) { e.stopPropagation(); return; }
+
+  const whoBtn = e.target.closest('[data-who]');
+  if (whoBtn) {
+    e.stopPropagation();
+    const id = whoBtn.dataset.who;
+    const it = items.find(i => i.id === id);
+    editWho = id; editDraft = it?.who || '';
+    render();
+    return;
+  }
+
+  // מחיקה — רק אחרי אישור
   const del = e.target.closest('[data-del]');
   if (del) {
     e.stopPropagation();
     const id = del.dataset.del;
+    const it = items.find(i => i.id === id);
+    if (!it) return;
+    if (!confirm(`למחוק את "${it.title}"?\n\nהפריט יימחק לכולם ואי אפשר לבטל.`)) return;
+    const backup = items.slice();
     items = items.filter(i => i.id !== id); render();
-    await sb.from('chag_items').delete().eq('id', id);
+    const { error } = await sb.from('chag_items').delete().eq('id', id);
+    if (error) { items = backup; render(); setBar('המחיקה נכשלה — נסו שוב'); }
     return;
   }
+
   const add = e.target.closest('[data-add]');
   if (add) {
     const meal = add.dataset.add;
     const ti = app.querySelector(`[data-t="${CSS.escape(meal)}"]`);
     const wi = app.querySelector(`[data-w="${CSS.escape(meal)}"]`);
     const title = ti?.value.trim(); if (!title) return;
-    const row = { kind: tab, meal, title, who: wi?.value.trim() || '', sort: 99 };
-    const { data } = await sb.from('chag_items').insert(row).select().single();
+    const maxSort = Math.max(0, ...items.filter(i => i.kind === tab && i.meal === meal).map(i => i.sort ?? 0));
+    const row = { kind: tab, meal, title, who: wi?.value.trim() || '', sort: maxSort + 1 };
+    const { data, error } = await sb.from('chag_items').insert(row).select().single();
+    if (error) { setBar('ההוספה נכשלה — נסו שוב'); return; }
     if (data) { items.push(data); render(); }
     return;
   }
+
   if (e.target.id === 'ngb') {
     const v = document.getElementById('ng')?.value.trim(); if (!v) return;
-    const { data } = await sb.from('chag_items')
-      .insert({ kind: tab, meal: v, title: 'פריט ראשון', sort: 1 }).select().single();
+    const maxSort = Math.max(0, ...items.filter(i => i.kind === tab).map(i => i.sort ?? 0));
+    const { data, error } = await sb.from('chag_items')
+      .insert({ kind: tab, meal: v, title: 'פריט ראשון', sort: maxSort + 1 }).select().single();
+    if (error) { setBar('ההוספה נכשלה — נסו שוב'); return; }
     if (data) { items.push(data); render(); }
     return;
   }
+
+  // סימון בוצע — נרשם על שמי
   const row = e.target.closest('.row');
   if (row) {
+    if (!me) { askName(''); return; }
     const it = items.find(i => i.id === row.dataset.id); if (!it) return;
-    it.done = !it.done; render();
-    await sb.from('chag_items').update({ done: it.done }).eq('id', it.id);
+    const prevDone = it.done, prevBy = it.done_by;
+    it.done = !it.done;
+    it.done_by = it.done ? me : '';
+    render();
+    const { error } = await sb.from('chag_items')
+      .update({ done: it.done, done_by: it.done_by }).eq('id', it.id);
+    if (error) { it.done = prevDone; it.done_by = prevBy; render(); setBar('לא הצלחנו לשמור — נסו שוב'); }
   }
 });
 
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
-  b.classList.add('on'); tab = b.dataset.tab; render();
+  b.classList.add('on'); tab = b.dataset.tab; editWho = null; editDraft = ''; render();
 }));
 
 sb.channel('chag').on('postgres_changes',
-  { event: '*', schema: 'public', table: 'chag_items' }, load).subscribe();
+  { event: '*', schema: 'public', table: 'chag_items' }, () => { if (!editWho) load(); }).subscribe();
 
+renderBar();
+if (!me) askName('');
 load();
 </script>
 </body>
