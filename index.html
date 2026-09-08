@@ -64,6 +64,14 @@ header p{color:var(--muted);font-size:14px;font-weight:300;margin-top:8px}
 .addlink{background:none;border:none;color:var(--muted);font-family:inherit;font-size:13px;
   cursor:pointer;padding:8px 2px;display:block}
 .addlink:hover{color:var(--plum)}
+.mvbtn{background:none;border:none;color:#CFC3AE;font-size:16px;line-height:1;cursor:pointer;
+  padding:3px 3px;font-family:inherit}
+.movepanel{border-bottom:1px solid var(--line);padding:2px 2px 12px}
+.mvlabel{font-size:12px;color:var(--muted);margin:10px 0 6px}
+.mvchips{display:flex;flex-wrap:wrap;gap:6px}
+.mv{font-family:inherit;font-size:13px;padding:6px 12px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.mv.cur{background:var(--plum);border-color:var(--plum);color:#fff}
 .addcourse{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;padding-top:12px;
   border-top:1px dashed var(--line)}
 .cchip{font-family:inherit;font-size:13px;padding:6px 12px;border-radius:999px;cursor:pointer;
@@ -147,7 +155,8 @@ const sb = createClient(
   'sb_publishable_ORry7BEfcGwEoXxd13ZDNQ_DgKkuFpI'
 );
 
-let tab = 'dish', items = [], editWho = null, editDraft = '', openAdd = null;
+let tab = 'dish', items = [], editWho = null, editDraft = '', openAdd = null, moveId = null;
+let tabMeals = [];
 let addSlots = [];
 const COURSES = ['סימנים','מנה ראשונה','עיקרית','סלטים','תוספות','קינוח'];
 const courseRank = c => { const i = COURSES.indexOf(c); return i < 0 ? 99 : i; };
@@ -231,6 +240,7 @@ function rowHtml(i) {
           </div>
           <div class="side">
             <button class="who ${whoClass(i.who)}" data-who="${i.id}">${i.who ? esc(whoLabel(i.who)) : whoEmpty()}</button>
+            <button class="mvbtn" data-move="${i.id}" aria-label="העברה">⇄</button>
             <button class="x" data-del="${i.id}" aria-label="מחיקה">×</button>
           </div>
         </div>` + (editing ? `
@@ -245,7 +255,21 @@ function rowHtml(i) {
             <button class="preset frz" data-pid="${i.id}" data-pval="${FRZ}">❄️ ${FRZ}</button>
             <button class="preset clr" data-pid="${i.id}" data-pval="">נקה</button>
           </div>
-        </div>` : '');
+        </div>` : '') + (moveId === i.id ? movePanel(i) : '');
+}
+
+function movePanel(i) {
+  const courses = tab === 'dish' ? `
+      <div class="mvlabel">לקטגוריה</div>
+      <div class="mvchips">${COURSES.map(c =>
+        `<button class="mv ${c === (i.course || '') ? 'cur' : ''}" data-mvid="${i.id}" data-mvc="${esc(c)}">${esc(c)}</button>`
+      ).join('')}</div>` : '';
+  const meals = tabMeals.length > 1 ? `
+      <div class="mvlabel">${tab === 'shop' ? 'לקטגוריה אחרת' : 'לארוחה אחרת'}</div>
+      <div class="mvchips">${tabMeals.map(m =>
+        `<button class="mv ${m === i.meal ? 'cur' : ''}" data-mvid="${i.id}" data-mvm="${esc(m)}">${esc(m.split(' · ')[0])}</button>`
+      ).join('')}</div>` : '';
+  return `<div class="movepanel">${courses}${meals}</div>`;
 }
 
 function addBlock(meal, course) {
@@ -275,6 +299,7 @@ function render() {
     if (sa !== sbb) return sa - sbb;
     return a[0].localeCompare(b[0], 'he');
   });
+  tabMeals = ordered.map(([m]) => m);
 
   app.innerHTML = ordered.map(([meal, list]) => {
     list.sort((x, y) => (x.sort ?? 0) - (y.sort ?? 0));
@@ -369,7 +394,38 @@ app.addEventListener('focusout', e => {
   commitWho(inp.dataset.whoedit, inp.value);
 });
 
+async function moveItem(id, patch) {
+  const it = items.find(i => i.id === id);
+  moveId = null;
+  if (!it) { render(); return; }
+  const key = Object.keys(patch)[0];
+  if ((it[key] || '') === patch[key]) { render(); return; }
+  const prev = { course: it.course, meal: it.meal, sort: it.sort };
+  if (patch.meal) {
+    patch.sort = Math.max(0, ...items.filter(x => x.kind === tab && x.meal === patch.meal)
+      .map(x => x.sort ?? 0)) + 1;
+  }
+  Object.assign(it, patch);
+  render();
+  const { error } = await sb.from('chag_items').update(patch).eq('id', id);
+  if (error) { Object.assign(it, prev); render(); setBar('ההעברה נכשלה — נסו שוב'); }
+}
+
 app.addEventListener('click', async e => {
+  // העברה בין קטגוריות / ארוחות
+  const mvc = e.target.closest('[data-mvc]');
+  if (mvc) { e.stopPropagation(); moveItem(mvc.dataset.mvid, { course: mvc.dataset.mvc }); return; }
+  const mvm = e.target.closest('[data-mvm]');
+  if (mvm) { e.stopPropagation(); moveItem(mvm.dataset.mvid, { meal: mvm.dataset.mvm }); return; }
+  const mvb = e.target.closest('[data-move]');
+  if (mvb) {
+    e.stopPropagation();
+    moveId = moveId === mvb.dataset.move ? null : mvb.dataset.move;
+    editWho = null; editDraft = '';
+    render();
+    return;
+  }
+
   const preset = e.target.closest('[data-pval]');
   if (preset) { e.stopPropagation(); commitWho(preset.dataset.pid, preset.dataset.pval); return; }
 
@@ -387,7 +443,7 @@ app.addEventListener('click', async e => {
     e.stopPropagation();
     const id = whoBtn.dataset.who;
     const it = items.find(i => i.id === id);
-    editWho = id; editDraft = it?.who || '';
+    editWho = id; editDraft = it?.who || ''; moveId = null;
     render();
     return;
   }
@@ -454,11 +510,11 @@ app.addEventListener('click', async e => {
 
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
-  b.classList.add('on'); tab = b.dataset.tab; editWho = null; editDraft = ''; openAdd = null; render();
+  b.classList.add('on'); tab = b.dataset.tab; editWho = null; editDraft = ''; openAdd = null; moveId = null; render();
 }));
 
 sb.channel('chag').on('postgres_changes',
-  { event: '*', schema: 'public', table: 'chag_items' }, () => { if (!editWho && !openAdd) load(); }).subscribe();
+  { event: '*', schema: 'public', table: 'chag_items' }, () => { if (!editWho && !openAdd && !moveId) load(); }).subscribe();
 
 renderBar();
 if (!me) askName('');
