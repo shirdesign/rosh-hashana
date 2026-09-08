@@ -56,6 +56,18 @@ header p{color:var(--muted);font-size:14px;font-weight:300;margin-top:8px}
 .x{background:none;border:none;color:#CFC3AE;font-size:22px;line-height:1;cursor:pointer;
   padding:2px 6px;font-family:inherit}
 
+.course{margin-bottom:2px}
+.course h3{font-family:'Frank Ruhl Libre',serif;font-weight:500;font-size:15px;color:var(--plum);
+  margin:16px 0 2px;padding-bottom:5px;border-bottom:1px solid var(--line);letter-spacing:.01em}
+.course:first-of-type h3{margin-top:2px}
+.course .add{border-top:none;margin-top:8px;padding-top:0;margin-bottom:4px}
+.addlink{background:none;border:none;color:var(--muted);font-family:inherit;font-size:13px;
+  cursor:pointer;padding:8px 2px;display:block}
+.addlink:hover{color:var(--plum)}
+.addcourse{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;padding-top:12px;
+  border-top:1px dashed var(--line)}
+.cchip{font-family:inherit;font-size:13px;padding:6px 12px;border-radius:999px;cursor:pointer;
+  border:1px dashed var(--line);background:transparent;color:var(--muted)}
 .whopanel{border-bottom:1px solid var(--line);padding:0 2px 12px}
 .whorow{display:flex;gap:8px}
 .whopanel input{flex:1 1 auto;min-width:0;background:var(--bg);border:1px solid var(--plum);
@@ -135,7 +147,11 @@ const sb = createClient(
   'sb_publishable_ORry7BEfcGwEoXxd13ZDNQ_DgKkuFpI'
 );
 
-let tab = 'dish', items = [], editWho = null, editDraft = '';
+let tab = 'dish', items = [], editWho = null, editDraft = '', openAdd = null;
+let addSlots = [];
+const COURSES = ['סימנים','מנה ראשונה','עיקרית','סלטים','תוספות','קינוח'];
+const courseRank = c => { const i = COURSES.indexOf(c); return i < 0 ? 99 : i; };
+const slotKey = (meal, course) => meal + '||' + course;
 const app = document.getElementById('app');
 const bar = document.getElementById('bar'), gate = document.getElementById('gate');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -204,34 +220,9 @@ async function load() {
   setBar('משותף לכולם · כל שינוי נשמר מיד');
 }
 
-function render() {
-  const mine = items.filter(i => i.kind === tab);
-  if (!mine.length) {
-    app.innerHTML = `<div class="state">אין כאן עדיין כלום.<br>הוסיפו פריט ראשון למטה.</div>${newGroup()}`;
-    return;
-  }
-  const groups = {};
-  mine.forEach(i => { (groups[i.meal] ||= []).push(i); });
-
-  const ordered = Object.entries(groups).sort((a, b) => {
-    const ra = mealRank(a[0]), rb = mealRank(b[0]);
-    if (ra !== rb) return ra - rb;
-    const sa = Math.min(...a[1].map(x => x.sort ?? 0));
-    const sbb = Math.min(...b[1].map(x => x.sort ?? 0));
-    if (sa !== sbb) return sa - sbb;
-    return a[0].localeCompare(b[0], 'he');
-  });
-
-  app.innerHTML = ordered.map(([meal, list]) => {
-    list.sort((x, y) => (x.sort ?? 0) - (y.sort ?? 0));
-    const done = list.filter(x => x.done).length;
-    const [title, ...rest] = meal.split(' · ');
-    return `<section class="group">
-      <h2>${esc(title)}</h2>
-      <div class="meta">${rest.length ? esc(rest.join(' · ')) + ' — ' : ''}<b>${done} מתוך ${list.length}</b></div>
-      ${list.map(i => {
-        const editing = editWho === i.id;
-        return `
+function rowHtml(i) {
+  const editing = editWho === i.id;
+  return `
         <div class="row ${i.done ? 'done' : ''} ${editing ? 'noline' : ''}" data-id="${i.id}">
           <div class="box">${i.done ? '✓' : ''}</div>
           <div class="main">
@@ -255,18 +246,80 @@ function render() {
             <button class="preset clr" data-pid="${i.id}" data-pval="">נקה</button>
           </div>
         </div>` : '');
-      }).join('')}
-      <div class="add">
-        <input placeholder="${tab === 'shop' ? 'מה לקנות' : 'מנה'}" data-t="${esc(meal)}" maxlength="60">
-        ${tab === 'dish' ? `<input class="w" placeholder="מי מכין" data-w="${esc(meal)}" maxlength="16">` : ''}
-        <button data-add="${esc(meal)}">הוספה</button>
-      </div>
-    </section>`;
+}
+
+function addBlock(meal, course) {
+  const n = addSlots.push({ meal, course }) - 1;
+  return `<div class="add">
+        <input placeholder="${tab === 'shop' ? 'מה לקנות' : 'מנה'}" data-ti="${n}" maxlength="60">
+        ${tab === 'dish' ? `<input class="w" placeholder="מי מכין" data-wi="${n}" maxlength="16">` : ''}
+        <button data-add="${n}">הוספה</button>
+      </div>`;
+}
+
+function render() {
+  addSlots = [];
+  const mine = items.filter(i => i.kind === tab);
+  if (!mine.length) {
+    app.innerHTML = `<div class="state">אין כאן עדיין כלום.<br>הוסיפו פריט ראשון למטה.</div>${newGroup()}`;
+    return;
+  }
+  const groups = {};
+  mine.forEach(i => { (groups[i.meal] ||= []).push(i); });
+
+  const ordered = Object.entries(groups).sort((a, b) => {
+    const ra = mealRank(a[0]), rb = mealRank(b[0]);
+    if (ra !== rb) return ra - rb;
+    const sa = Math.min(...a[1].map(x => x.sort ?? 0));
+    const sbb = Math.min(...b[1].map(x => x.sort ?? 0));
+    if (sa !== sbb) return sa - sbb;
+    return a[0].localeCompare(b[0], 'he');
+  });
+
+  app.innerHTML = ordered.map(([meal, list]) => {
+    list.sort((x, y) => (x.sort ?? 0) - (y.sort ?? 0));
+    const done = list.filter(x => x.done).length;
+    const [title, ...rest] = meal.split(' · ');
+    const head = `<h2>${esc(title)}</h2>
+      <div class="meta">${rest.length ? esc(rest.join(' · ')) + ' — ' : ''}<b>${done} מתוך ${list.length}</b></div>`;
+
+    // רק בתפריט יש חלוקה לקטגוריות; הכנות וקניות נשארות שטוחות
+    if (tab !== 'dish') {
+      return `<section class="group">${head}${list.map(rowHtml).join('')}${addBlock(meal, '')}</section>`;
+    }
+
+    const byCourse = {};
+    list.forEach(i => { (byCourse[i.course || ''] ||= []).push(i); });
+    // קטגוריה ריקה שנפתחה עכשיו להוספה
+    const openHere = openAdd && openAdd.startsWith(meal + '||') ? openAdd.slice(meal.length + 2) : null;
+    if (openHere !== null && !byCourse[openHere]) byCourse[openHere] = [];
+
+    const present = Object.keys(byCourse).sort((a, b) => courseRank(a) - courseRank(b));
+    const body = present.map(c => {
+      const key = slotKey(meal, c);
+      return `<div class="course">
+        <h3>${c ? esc(c) : 'שונות'}</h3>
+        ${byCourse[c].map(rowHtml).join('')}
+        ${openAdd === key ? addBlock(meal, c)
+          : `<button class="addlink" data-open="${esc(key)}">+ הוספת מנה</button>`}
+      </div>`;
+    }).join('');
+
+    const missing = COURSES.filter(c => !present.includes(c));
+    const chips = missing.length
+      ? `<div class="addcourse">${missing.map(c =>
+          `<button class="cchip" data-open="${esc(slotKey(meal, c))}">+ ${esc(c)}</button>`).join('')}</div>`
+      : '';
+
+    return `<section class="group">${head}${body}${chips}</section>`;
   }).join('') + newGroup();
 
   if (editWho) {
     const el = app.querySelector('[data-whoedit]');
     if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  } else if (openAdd && tab === 'dish') {
+    const el = app.querySelector('.add input[data-ti]');
+    if (el) el.focus();
   }
 }
 
@@ -292,6 +345,13 @@ app.addEventListener('pointerdown', e => {
   if (e.target.closest('.whopanel button')) e.preventDefault();
 });
 app.addEventListener('keydown', e => {
+  const ai = e.target.closest('[data-ti],[data-wi]');
+  if (ai && e.key === 'Enter') {
+    e.preventDefault();
+    const n = ai.dataset.ti ?? ai.dataset.wi;
+    app.querySelector(`[data-add="${n}"]`)?.click();
+    return;
+  }
   const inp = e.target.closest('[data-whoedit]');
   if (!inp) return;
   if (e.key === 'Enter') { e.preventDefault(); commitWho(inp.dataset.whoedit, inp.value); }
@@ -347,14 +407,20 @@ app.addEventListener('click', async e => {
     return;
   }
 
+  // פתיחת טופס הוספה לקטגוריה מסוימת
+  const opener = e.target.closest('[data-open]');
+  if (opener) { e.stopPropagation(); openAdd = opener.dataset.open; render(); return; }
+
   const add = e.target.closest('[data-add]');
   if (add) {
-    const meal = add.dataset.add;
-    const ti = app.querySelector(`[data-t="${CSS.escape(meal)}"]`);
-    const wi = app.querySelector(`[data-w="${CSS.escape(meal)}"]`);
+    const n = add.dataset.add;
+    const slot = addSlots[+n]; if (!slot) return;
+    const ti = app.querySelector(`[data-ti="${n}"]`);
+    const wi = app.querySelector(`[data-wi="${n}"]`);
     const title = ti?.value.trim(); if (!title) return;
-    const maxSort = Math.max(0, ...items.filter(i => i.kind === tab && i.meal === meal).map(i => i.sort ?? 0));
-    const row = { kind: tab, meal, title, who: wi?.value.trim() || '', sort: maxSort + 1 };
+    const maxSort = Math.max(0, ...items.filter(i => i.kind === tab && i.meal === slot.meal).map(i => i.sort ?? 0));
+    const row = { kind: tab, meal: slot.meal, title, who: wi?.value.trim() || '', sort: maxSort + 1 };
+    if (tab === 'dish') row.course = slot.course;
     const { data, error } = await sb.from('chag_items').insert(row).select().single();
     if (error) { setBar('ההוספה נכשלה — נסו שוב'); return; }
     if (data) { items.push(data); render(); }
@@ -388,11 +454,11 @@ app.addEventListener('click', async e => {
 
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
-  b.classList.add('on'); tab = b.dataset.tab; editWho = null; editDraft = ''; render();
+  b.classList.add('on'); tab = b.dataset.tab; editWho = null; editDraft = ''; openAdd = null; render();
 }));
 
 sb.channel('chag').on('postgres_changes',
-  { event: '*', schema: 'public', table: 'chag_items' }, () => { if (!editWho) load(); }).subscribe();
+  { event: '*', schema: 'public', table: 'chag_items' }, () => { if (!editWho && !openAdd) load(); }).subscribe();
 
 renderBar();
 if (!me) askName('');
