@@ -64,8 +64,6 @@ header p{color:var(--muted);font-size:14px;font-weight:300;margin-top:8px}
 .addlink{background:none;border:none;color:var(--muted);font-family:inherit;font-size:13px;
   cursor:pointer;padding:8px 2px;display:block}
 .addlink:hover{color:var(--plum)}
-.mvbtn{background:none;border:none;color:#CFC3AE;font-size:16px;line-height:1;cursor:pointer;
-  padding:3px 3px;font-family:inherit}
 .movepanel{border-bottom:1px solid var(--line);padding:2px 2px 12px}
 .mvlabel{font-size:12px;color:var(--muted);margin:10px 0 6px}
 .mvchips{display:flex;flex-wrap:wrap;gap:6px}
@@ -76,18 +74,28 @@ header p{color:var(--muted);font-size:14px;font-weight:300;margin-top:8px}
   border-top:1px dashed var(--line)}
 .cchip{font-family:inherit;font-size:13px;padding:6px 12px;border-radius:999px;cursor:pointer;
   border:1px dashed var(--line);background:transparent;color:var(--muted)}
-.whopanel{border-bottom:1px solid var(--line);padding:0 2px 12px}
-.whorow{display:flex;gap:8px}
-.whopanel input{flex:1 1 auto;min-width:0;background:var(--bg);border:1px solid var(--plum);
-  border-radius:10px;padding:9px 12px;font-family:inherit;font-size:16px;color:var(--ink)}
-.whopanel .wsave{flex:0 0 auto;background:var(--plum);border:none;color:#fff;font-family:inherit;
-  font-weight:600;font-size:14px;padding:9px 16px;border-radius:10px;cursor:pointer}
-.wpresets{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.editbtn{background:none;border:none;color:#B8A98F;font-size:15px;line-height:1;cursor:pointer;
+  padding:3px 4px;font-family:inherit}
+.editpanel{border-bottom:1px solid var(--line);padding:4px 2px 14px}
+.elabel{font-size:12px;color:var(--muted);margin:10px 0 5px}
+.editpanel input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;font-family:inherit;font-size:16px;color:var(--ink)}
+.editpanel input:focus{border-color:var(--plum);outline:none}
+.mvchips{display:flex;flex-wrap:wrap;gap:6px}
+.mv{font-family:inherit;font-size:13px;padding:6px 12px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.mv.cur{background:var(--plum);border-color:var(--plum);color:#fff}
 .preset{font-family:inherit;font-size:13px;padding:6px 12px;border-radius:999px;cursor:pointer;
   border:1px solid var(--line);background:var(--surface);color:var(--ink)}
 .preset.buy{color:#8A5A00;background:#FBEFD6;border-color:#EBD9B4}
 .preset.frz{color:#2F5E86;background:#E3EFF8;border-color:#C6DCEC}
 .preset.clr{color:var(--muted)}
+.wpresets{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ebtns{display:flex;gap:8px;margin-top:16px}
+.esave{flex:1;background:var(--plum);border:none;color:#fff;font-family:inherit;font-weight:600;
+  font-size:15px;padding:11px;border-radius:10px;cursor:pointer}
+.ecancel{flex:0 0 auto;background:var(--surface);border:1px solid var(--line);color:var(--muted);
+  font-family:inherit;font-size:15px;padding:11px 18px;border-radius:10px;cursor:pointer}
 
 .add{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;
   border-top:1px dashed var(--line)}
@@ -155,12 +163,14 @@ const sb = createClient(
   'sb_publishable_ORry7BEfcGwEoXxd13ZDNQ_DgKkuFpI'
 );
 
-let tab = 'dish', items = [], editWho = null, editDraft = '', openAdd = null, moveId = null;
-let tabMeals = [];
-let addSlots = [];
-const COURSES = ['סימנים','מנה ראשונה','עיקרית','סלטים','תוספות','קינוח'];
+let tab = 'dish', items = [], openAdd = null, tabMeals = [], addSlots = [];
+// פאנל עריכה אחד לכל שורה: שם, מי מכין, קטגוריה, ארוחה
+let editId = null, dTitle = '', dWho = '', dCourse = '', dMeal = '', focusField = 'title';
+
+const COURSES = ['סימנים', 'מנה ראשונה', 'עיקרית', 'סלטים', 'תוספות', 'קינוח'];
 const courseRank = c => { const i = COURSES.indexOf(c); return i < 0 ? 99 : i; };
 const slotKey = (meal, course) => meal + '||' + course;
+
 const app = document.getElementById('app');
 const bar = document.getElementById('bar'), gate = document.getElementById('gate');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -204,8 +214,8 @@ const whoLabel = w => w === BUY ? '🛒 ' + BUY : w === FRZ ? '❄️ ' + FRZ : 
 const whoEmpty = () => tab === 'shop' ? '+ מי קונה' : '+ מי מכין';
 
 /* ---------- סדר כרונולוגי של הארוחות ---------- */
-const ORD = { 'א':1,'ב':2,'ג':3,'ד':4,'ה':5 };
-const DOW = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const ORD = { 'א':1, 'ב':2, 'ג':3, 'ד':4, 'ה':5 };
+const DOW = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 
 function mealRank(meal) {
   const s = String(meal || '');
@@ -229,53 +239,56 @@ async function load() {
   setBar('משותף לכולם · כל שינוי נשמר מיד');
 }
 
+/* ---------- תצוגה ---------- */
 function rowHtml(i) {
-  const editing = editWho === i.id;
   return `
-        <div class="row ${i.done ? 'done' : ''} ${editing ? 'noline' : ''}" data-id="${i.id}">
+        <div class="row ${i.done ? 'done' : ''} ${editId === i.id ? 'noline' : ''}" data-id="${i.id}">
           <div class="box">${i.done ? '✓' : ''}</div>
           <div class="main">
             <div class="t">${esc(i.title)}</div>
             ${i.done && i.done_by ? `<div class="sub">✓ סימן/ה ${esc(i.done_by)}</div>` : ''}
           </div>
           <div class="side">
-            <button class="who ${whoClass(i.who)}" data-who="${i.id}">${i.who ? esc(whoLabel(i.who)) : whoEmpty()}</button>
-            <button class="mvbtn" data-move="${i.id}" aria-label="העברה">⇄</button>
+            <button class="who ${whoClass(i.who)}" data-edit="${i.id}" data-focus="who">${i.who ? esc(whoLabel(i.who)) : whoEmpty()}</button>
+            <button class="editbtn" data-edit="${i.id}" data-focus="title" aria-label="עריכה">✎</button>
             <button class="x" data-del="${i.id}" aria-label="מחיקה">×</button>
           </div>
-        </div>` + (editing ? `
-        <div class="whopanel">
-          <div class="whorow">
-            <input class="whoedit" data-whoedit="${i.id}" value="${esc(editDraft)}" maxlength="16"
-                   placeholder="${tab === 'shop' ? 'מי קונה' : 'מי מכין'}">
-            <button class="wsave" data-wsave="${i.id}">שמירה</button>
-          </div>
-          <div class="wpresets">
-            <button class="preset buy" data-pid="${i.id}" data-pval="${BUY}">🛒 ${BUY}</button>
-            <button class="preset frz" data-pid="${i.id}" data-pval="${FRZ}">❄️ ${FRZ}</button>
-            <button class="preset clr" data-pid="${i.id}" data-pval="">נקה</button>
-          </div>
-        </div>` : '') + (moveId === i.id ? movePanel(i) : '');
+        </div>` + (editId === i.id ? editPanel(i) : '');
 }
 
-function movePanel(i) {
+function editPanel(i) {
   const courses = tab === 'dish' ? `
-      <div class="mvlabel">לקטגוריה</div>
-      <div class="mvchips">${COURSES.map(c =>
-        `<button class="mv ${c === (i.course || '') ? 'cur' : ''}" data-mvid="${i.id}" data-mvc="${esc(c)}">${esc(c)}</button>`
-      ).join('')}</div>` : '';
+          <div class="elabel">קטגוריה</div>
+          <div class="mvchips">${COURSES.map(c =>
+            `<button class="mv ${c === dCourse ? 'cur' : ''}" data-dcourse="${esc(c)}">${esc(c)}</button>`
+          ).join('')}</div>` : '';
   const meals = tabMeals.length > 1 ? `
-      <div class="mvlabel">${tab === 'shop' ? 'לקטגוריה אחרת' : 'לארוחה אחרת'}</div>
-      <div class="mvchips">${tabMeals.map(m =>
-        `<button class="mv ${m === i.meal ? 'cur' : ''}" data-mvid="${i.id}" data-mvm="${esc(m)}">${esc(m.split(' · ')[0])}</button>`
-      ).join('')}</div>` : '';
-  return `<div class="movepanel">${courses}${meals}</div>`;
+          <div class="elabel">${tab === 'shop' ? 'קטגוריה ברשימה' : 'ארוחה'}</div>
+          <div class="mvchips">${tabMeals.map(m =>
+            `<button class="mv ${m === dMeal ? 'cur' : ''}" data-dmeal="${esc(m)}">${esc(m.split(' · ')[0])}</button>`
+          ).join('')}</div>` : '';
+  return `
+        <div class="editpanel">
+          <div class="elabel">${tab === 'shop' ? 'מה לקנות' : 'שם המנה'}</div>
+          <input data-etitle value="${esc(dTitle)}" maxlength="120">
+          <div class="elabel">${tab === 'shop' ? 'מי קונה' : 'מי מכין'}</div>
+          <input data-ewho value="${esc(dWho)}" maxlength="16" placeholder="שם, או בחרו למטה">
+          <div class="wpresets">
+            <button class="preset buy" data-dwho="${BUY}">🛒 ${BUY}</button>
+            <button class="preset frz" data-dwho="${FRZ}">❄️ ${FRZ}</button>
+            <button class="preset clr" data-dwho="">נקה</button>
+          </div>${courses}${meals}
+          <div class="ebtns">
+            <button class="esave" data-esave>שמירה</button>
+            <button class="ecancel" data-ecancel>ביטול</button>
+          </div>
+        </div>`;
 }
 
 function addBlock(meal, course) {
   const n = addSlots.push({ meal, course }) - 1;
   return `<div class="add">
-        <input placeholder="${tab === 'shop' ? 'מה לקנות' : 'מנה'}" data-ti="${n}" maxlength="60">
+        <input placeholder="${tab === 'shop' ? 'מה לקנות' : 'מנה'}" data-ti="${n}" maxlength="120">
         ${tab === 'dish' ? `<input class="w" placeholder="מי מכין" data-wi="${n}" maxlength="16">` : ''}
         <button data-add="${n}">הוספה</button>
       </div>`;
@@ -308,14 +321,13 @@ function render() {
     const head = `<h2>${esc(title)}</h2>
       <div class="meta">${rest.length ? esc(rest.join(' · ')) + ' — ' : ''}<b>${done} מתוך ${list.length}</b></div>`;
 
-    // רק בתפריט יש חלוקה לקטגוריות; הכנות וקניות נשארות שטוחות
+    // רק בתפריט יש חלוקה לקטגוריות; הכנות וקניות שטוחות
     if (tab !== 'dish') {
       return `<section class="group">${head}${list.map(rowHtml).join('')}${addBlock(meal, '')}</section>`;
     }
 
     const byCourse = {};
     list.forEach(i => { (byCourse[i.course || ''] ||= []).push(i); });
-    // קטגוריה ריקה שנפתחה עכשיו להוספה
     const openHere = openAdd && openAdd.startsWith(meal + '||') ? openAdd.slice(meal.length + 2) : null;
     if (openHere !== null && !byCourse[openHere]) byCourse[openHere] = [];
 
@@ -339,12 +351,11 @@ function render() {
     return `<section class="group">${head}${body}${chips}</section>`;
   }).join('') + newGroup();
 
-  if (editWho) {
-    const el = app.querySelector('[data-whoedit]');
+  if (editId) {
+    const el = app.querySelector(focusField === 'who' ? '[data-ewho]' : '[data-etitle]');
     if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
   } else if (openAdd && tab === 'dish') {
-    const el = app.querySelector('.add input[data-ti]');
-    if (el) el.focus();
+    app.querySelector('.add input[data-ti]')?.focus();
   }
 }
 
@@ -352,103 +363,91 @@ const newGroup = () => `<div class="newgroup">
   <input id="ng" placeholder="${tab === 'shop' ? 'קטגוריה חדשה — למשל ירקות' : 'ארוחה או קטגוריה חדשה'}" maxlength="70">
   <button id="ngb">הוספה</button></div>`;
 
-/* ---------- עריכת מי מכין / לקנות / מהמקפיא ---------- */
-async function commitWho(id, value) {
-  const it = items.find(i => i.id === id);
-  editWho = null; editDraft = '';
-  if (!it) { render(); return; }
-  const next = String(value).trim().slice(0, 16);
-  if (next === (it.who || '')) { render(); return; }
-  const prev = it.who;
-  it.who = next; render();
-  const { error } = await sb.from('chag_items').update({ who: next }).eq('id', id);
-  if (error) { it.who = prev; render(); setBar('לא הצלחנו לשמור — נסו שוב'); }
+/* ---------- עריכה ---------- */
+function openEdit(id, focus) {
+  const it = items.find(i => i.id === id); if (!it) return;
+  editId = id; openAdd = null;
+  dTitle = it.title || ''; dWho = it.who || '';
+  dCourse = it.course || ''; dMeal = it.meal;
+  focusField = focus || 'title';
+  render();
 }
 
-// שומר על הפוקוס כשלוחצים על כפתור בפאנל, כדי ש-blur לא יבטל את הלחיצה
+async function saveEdit() {
+  const id = editId;
+  const it = items.find(i => i.id === id);
+  editId = null;
+  if (!it) { render(); return; }
+
+  const patch = {};
+  const t = dTitle.trim();
+  if (t && t !== it.title) patch.title = t;
+  const w = dWho.trim();
+  if (w !== (it.who || '')) patch.who = w;
+  if (tab === 'dish' && dCourse !== (it.course || '')) patch.course = dCourse;
+  if (dMeal && dMeal !== it.meal) {
+    patch.meal = dMeal;
+    patch.sort = Math.max(0, ...items.filter(x => x.kind === tab && x.meal === dMeal)
+      .map(x => x.sort ?? 0)) + 1;
+  }
+  if (!Object.keys(patch).length) { render(); return; }
+
+  const prev = { title: it.title, who: it.who, course: it.course, meal: it.meal, sort: it.sort };
+  Object.assign(it, patch);
+  render();
+  const { error } = await sb.from('chag_items').update(patch).eq('id', id);
+  if (error) { Object.assign(it, prev); render(); setBar('השמירה נכשלה — נסו שוב'); }
+}
+
+// שמירה על הפוקוס כשלוחצים כפתור בתוך הפאנל
 app.addEventListener('pointerdown', e => {
-  if (e.target.closest('.whopanel button')) e.preventDefault();
+  if (e.target.closest('.editpanel button')) e.preventDefault();
+});
+app.addEventListener('input', e => {
+  const t = e.target;
+  if (t.matches('[data-etitle]')) dTitle = t.value;
+  else if (t.matches('[data-ewho]')) dWho = t.value;
 });
 app.addEventListener('keydown', e => {
   const ai = e.target.closest('[data-ti],[data-wi]');
   if (ai && e.key === 'Enter') {
     e.preventDefault();
-    const n = ai.dataset.ti ?? ai.dataset.wi;
-    app.querySelector(`[data-add="${n}"]`)?.click();
+    app.querySelector(`[data-add="${ai.dataset.ti ?? ai.dataset.wi}"]`)?.click();
     return;
   }
-  const inp = e.target.closest('[data-whoedit]');
-  if (!inp) return;
-  if (e.key === 'Enter') { e.preventDefault(); commitWho(inp.dataset.whoedit, inp.value); }
-  if (e.key === 'Escape') { editWho = null; editDraft = ''; render(); }
-});
-app.addEventListener('input', e => {
-  const inp = e.target.closest('[data-whoedit]');
-  if (inp) editDraft = inp.value;
-});
-app.addEventListener('focusout', e => {
-  const inp = e.target.closest('[data-whoedit]');
-  if (!inp || editWho !== inp.dataset.whoedit) return;
-  const panel = inp.closest('.whopanel');
-  if (panel && e.relatedTarget && panel.contains(e.relatedTarget)) return;
-  commitWho(inp.dataset.whoedit, inp.value);
-});
-
-async function moveItem(id, patch) {
-  const it = items.find(i => i.id === id);
-  moveId = null;
-  if (!it) { render(); return; }
-  const key = Object.keys(patch)[0];
-  if ((it[key] || '') === patch[key]) { render(); return; }
-  const prev = { course: it.course, meal: it.meal, sort: it.sort };
-  if (patch.meal) {
-    patch.sort = Math.max(0, ...items.filter(x => x.kind === tab && x.meal === patch.meal)
-      .map(x => x.sort ?? 0)) + 1;
+  if (e.target.closest('[data-etitle],[data-ewho]')) {
+    if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
+    if (e.key === 'Escape') { editId = null; render(); }
   }
-  Object.assign(it, patch);
-  render();
-  const { error } = await sb.from('chag_items').update(patch).eq('id', id);
-  if (error) { Object.assign(it, prev); render(); setBar('ההעברה נכשלה — נסו שוב'); }
-}
+});
 
 app.addEventListener('click', async e => {
-  // העברה בין קטגוריות / ארוחות
-  const mvc = e.target.closest('[data-mvc]');
-  if (mvc) { e.stopPropagation(); moveItem(mvc.dataset.mvid, { course: mvc.dataset.mvc }); return; }
-  const mvm = e.target.closest('[data-mvm]');
-  if (mvm) { e.stopPropagation(); moveItem(mvm.dataset.mvid, { meal: mvm.dataset.mvm }); return; }
-  const mvb = e.target.closest('[data-move]');
-  if (mvb) {
+  // ---- פאנל העריכה ----
+  const dw = e.target.closest('[data-dwho]');
+  if (dw) {
     e.stopPropagation();
-    moveId = moveId === mvb.dataset.move ? null : mvb.dataset.move;
-    editWho = null; editDraft = '';
+    dWho = dw.dataset.dwho;
+    const el = app.querySelector('[data-ewho]'); if (el) el.value = dWho;
     render();
     return;
   }
+  const dc = e.target.closest('[data-dcourse]');
+  if (dc) { e.stopPropagation(); dCourse = dc.dataset.dcourse; render(); return; }
+  const dm = e.target.closest('[data-dmeal]');
+  if (dm) { e.stopPropagation(); dMeal = dm.dataset.dmeal; render(); return; }
+  if (e.target.closest('[data-esave]')) { e.stopPropagation(); saveEdit(); return; }
+  if (e.target.closest('[data-ecancel]')) { e.stopPropagation(); editId = null; render(); return; }
+  if (e.target.closest('[data-etitle],[data-ewho]')) { e.stopPropagation(); return; }
 
-  const preset = e.target.closest('[data-pval]');
-  if (preset) { e.stopPropagation(); commitWho(preset.dataset.pid, preset.dataset.pval); return; }
-
-  const wsave = e.target.closest('[data-wsave]');
-  if (wsave) {
+  const ed = e.target.closest('[data-edit]');
+  if (ed) {
     e.stopPropagation();
-    const inp = app.querySelector('[data-whoedit]');
-    commitWho(wsave.dataset.wsave, inp ? inp.value : '');
-    return;
-  }
-  if (e.target.closest('[data-whoedit]')) { e.stopPropagation(); return; }
-
-  const whoBtn = e.target.closest('[data-who]');
-  if (whoBtn) {
-    e.stopPropagation();
-    const id = whoBtn.dataset.who;
-    const it = items.find(i => i.id === id);
-    editWho = id; editDraft = it?.who || ''; moveId = null;
-    render();
+    if (editId === ed.dataset.edit) { editId = null; render(); }
+    else openEdit(ed.dataset.edit, ed.dataset.focus);
     return;
   }
 
-  // מחיקה — רק אחרי אישור
+  // ---- מחיקה, רק אחרי אישור ----
   const del = e.target.closest('[data-del]');
   if (del) {
     e.stopPropagation();
@@ -463,9 +462,9 @@ app.addEventListener('click', async e => {
     return;
   }
 
-  // פתיחת טופס הוספה לקטגוריה מסוימת
+  // ---- הוספה ----
   const opener = e.target.closest('[data-open]');
-  if (opener) { e.stopPropagation(); openAdd = opener.dataset.open; render(); return; }
+  if (opener) { e.stopPropagation(); openAdd = opener.dataset.open; editId = null; render(); return; }
 
   const add = e.target.closest('[data-add]');
   if (add) {
@@ -493,7 +492,7 @@ app.addEventListener('click', async e => {
     return;
   }
 
-  // סימון בוצע — נרשם על שמי
+  // ---- סימון בוצע, נרשם על שמי ----
   const row = e.target.closest('.row');
   if (row) {
     if (!me) { askName(''); return; }
@@ -510,11 +509,14 @@ app.addEventListener('click', async e => {
 
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
-  b.classList.add('on'); tab = b.dataset.tab; editWho = null; editDraft = ''; openAdd = null; moveId = null; render();
+  b.classList.add('on');
+  tab = b.dataset.tab; editId = null; openAdd = null;
+  render();
 }));
 
 sb.channel('chag').on('postgres_changes',
-  { event: '*', schema: 'public', table: 'chag_items' }, () => { if (!editWho && !openAdd && !moveId) load(); }).subscribe();
+  { event: '*', schema: 'public', table: 'chag_items' },
+  () => { if (!editId && !openAdd) load(); }).subscribe();
 
 renderBar();
 if (!me) askName('');
