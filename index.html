@@ -46,6 +46,7 @@ header p{color:var(--muted);font-size:14px;font-weight:300;margin-top:8px}
 .main{flex:1 1 auto;min-width:0}
 .t{font-size:16px;line-height:1.35;overflow-wrap:anywhere}
 .sub{font-size:12px;color:var(--leaf);margin-top:3px;overflow-wrap:anywhere}
+.src{font-size:12px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
 .side{flex:0 0 auto;display:flex;align-items:center;gap:2px;margin-top:1px}
 .who{font-size:12px;color:var(--plum);background:#F3EAEE;border:1px solid transparent;
   padding:4px 9px;border-radius:999px;max-width:104px;overflow:hidden;text-overflow:ellipsis;
@@ -163,7 +164,7 @@ const sb = createClient(
   'sb_publishable_ORry7BEfcGwEoXxd13ZDNQ_DgKkuFpI'
 );
 
-let tab = 'dish', items = [], openAdd = null, tabMeals = [], addSlots = [];
+let tab = 'dish', items = [], openAdd = null, addSlots = [];
 // פאנל עריכה אחד לכל שורה: שם, מי מכין, קטגוריה, ארוחה
 let editId = null, dTitle = '', dWho = '', dCourse = '', dMeal = '', focusField = 'title';
 
@@ -211,7 +212,13 @@ document.getElementById('gname').addEventListener('keydown', e => {
 const BUY = 'לקנות', FRZ = 'מהמקפיא';
 const whoClass = w => w === BUY ? 'buy' : w === FRZ ? 'frz' : (w ? '' : 'empty');
 const whoLabel = w => w === BUY ? '🛒 ' + BUY : w === FRZ ? '❄️ ' + FRZ : w;
-const whoEmpty = () => tab === 'shop' ? '+ מי קונה' : '+ מי מכין';
+const whoEmpty = kind => kind === 'shop' ? '+ מי קונה' : '+ מי מכין';
+
+// הארוחות/הקטגוריות של סוג מסוים — פריט שמוצג בלשונית אחרת עדיין עורכים לפי הסוג שלו
+function mealsOf(kind) {
+  return [...new Set(items.filter(i => i.kind === kind).map(i => i.meal))]
+    .sort((a, b) => mealRank(a) - mealRank(b) || a.localeCompare(b, 'he'));
+}
 
 /* ---------- סדר כרונולוגי של הארוחות ---------- */
 const ORD = { 'א':1, 'ב':2, 'ג':3, 'ד':4, 'ה':5 };
@@ -240,38 +247,44 @@ async function load() {
 }
 
 /* ---------- תצוגה ---------- */
-function rowHtml(i) {
+function rowHtml(i, virtual) {
+  const src = virtual
+    ? `<div class="src">${esc(i.meal.split(' · ')[0])}${i.course ? ' · ' + esc(i.course) : ''}</div>`
+    : '';
   return `
         <div class="row ${i.done ? 'done' : ''} ${editId === i.id ? 'noline' : ''}" data-id="${i.id}">
           <div class="box">${i.done ? '✓' : ''}</div>
           <div class="main">
             <div class="t">${esc(i.title)}</div>
+            ${src}
             ${i.done && i.done_by ? `<div class="sub">✓ סימן/ה ${esc(i.done_by)}</div>` : ''}
           </div>
           <div class="side">
-            <button class="who ${whoClass(i.who)}" data-edit="${i.id}" data-focus="who">${i.who ? esc(whoLabel(i.who)) : whoEmpty()}</button>
+            <button class="who ${whoClass(i.who)}" data-edit="${i.id}" data-focus="who">${i.who ? esc(whoLabel(i.who)) : whoEmpty(i.kind)}</button>
             <button class="editbtn" data-edit="${i.id}" data-focus="title" aria-label="עריכה">✎</button>
-            <button class="x" data-del="${i.id}" aria-label="מחיקה">×</button>
+            ${virtual ? '' : `<button class="x" data-del="${i.id}" aria-label="מחיקה">×</button>`}
           </div>
         </div>` + (editId === i.id ? editPanel(i) : '');
 }
 
 function editPanel(i) {
-  const courses = tab === 'dish' ? `
+  const kind = i.kind;
+  const mealList = mealsOf(kind);
+  const courses = kind === 'dish' ? `
           <div class="elabel">קטגוריה</div>
           <div class="mvchips">${COURSES.map(c =>
             `<button class="mv ${c === dCourse ? 'cur' : ''}" data-dcourse="${esc(c)}">${esc(c)}</button>`
           ).join('')}</div>` : '';
-  const meals = tabMeals.length > 1 ? `
-          <div class="elabel">${tab === 'shop' ? 'קטגוריה ברשימה' : 'ארוחה'}</div>
-          <div class="mvchips">${tabMeals.map(m =>
+  const meals = mealList.length > 1 ? `
+          <div class="elabel">${kind === 'shop' ? 'קטגוריה ברשימה' : 'ארוחה'}</div>
+          <div class="mvchips">${mealList.map(m =>
             `<button class="mv ${m === dMeal ? 'cur' : ''}" data-dmeal="${esc(m)}">${esc(m.split(' · ')[0])}</button>`
           ).join('')}</div>` : '';
   return `
         <div class="editpanel">
-          <div class="elabel">${tab === 'shop' ? 'מה לקנות' : 'שם המנה'}</div>
+          <div class="elabel">${kind === 'shop' ? 'מה לקנות' : 'שם המנה'}</div>
           <input data-etitle value="${esc(dTitle)}" maxlength="120">
-          <div class="elabel">${tab === 'shop' ? 'מי קונה' : 'מי מכין'}</div>
+          <div class="elabel">${kind === 'shop' ? 'מי קונה' : 'מי מכין'}</div>
           <input data-ewho value="${esc(dWho)}" maxlength="16" placeholder="שם, או בחרו למטה">
           <div class="wpresets">
             <button class="preset buy" data-dwho="${BUY}">🛒 ${BUY}</button>
@@ -312,9 +325,22 @@ function render() {
     if (sa !== sbb) return sa - sbb;
     return a[0].localeCompare(b[0], 'he');
   });
-  tabMeals = ordered.map(([m]) => m);
 
-  app.innerHTML = ordered.map(([meal, list]) => {
+  // בלשונית הקניות: כל מה שסומן "לקנות" בתפריט או בהכנות מופיע גם כאן
+  let buyGroup = '';
+  if (tab === 'shop') {
+    const buys = items.filter(i => i.kind !== 'shop' && i.who === BUY)
+      .sort((a, b) => mealRank(a.meal) - mealRank(b.meal) || (a.sort ?? 0) - (b.sort ?? 0));
+    if (buys.length) {
+      const d = buys.filter(x => x.done).length;
+      buyGroup = `<section class="group">
+        <h2>לקנות</h2>
+        <div class="meta">מהתפריט וההכנות — <b>${d} מתוך ${buys.length}</b></div>
+        ${buys.map(i => rowHtml(i, true)).join('')}</section>`;
+    }
+  }
+
+  app.innerHTML = buyGroup + ordered.map(([meal, list]) => {
     list.sort((x, y) => (x.sort ?? 0) - (y.sort ?? 0));
     const done = list.filter(x => x.done).length;
     const [title, ...rest] = meal.split(' · ');
@@ -323,7 +349,7 @@ function render() {
 
     // רק בתפריט יש חלוקה לקטגוריות; הכנות וקניות שטוחות
     if (tab !== 'dish') {
-      return `<section class="group">${head}${list.map(rowHtml).join('')}${addBlock(meal, '')}</section>`;
+      return `<section class="group">${head}${list.map(i => rowHtml(i)).join('')}${addBlock(meal, '')}</section>`;
     }
 
     const byCourse = {};
@@ -336,7 +362,7 @@ function render() {
       const key = slotKey(meal, c);
       return `<div class="course">
         <h3>${c ? esc(c) : 'שונות'}</h3>
-        ${byCourse[c].map(rowHtml).join('')}
+        ${byCourse[c].map(i => rowHtml(i)).join('')}
         ${openAdd === key ? addBlock(meal, c)
           : `<button class="addlink" data-open="${esc(key)}">+ הוספת מנה</button>`}
       </div>`;
@@ -384,10 +410,10 @@ async function saveEdit() {
   if (t && t !== it.title) patch.title = t;
   const w = dWho.trim();
   if (w !== (it.who || '')) patch.who = w;
-  if (tab === 'dish' && dCourse !== (it.course || '')) patch.course = dCourse;
+  if (it.kind === 'dish' && dCourse !== (it.course || '')) patch.course = dCourse;
   if (dMeal && dMeal !== it.meal) {
     patch.meal = dMeal;
-    patch.sort = Math.max(0, ...items.filter(x => x.kind === tab && x.meal === dMeal)
+    patch.sort = Math.max(0, ...items.filter(x => x.kind === it.kind && x.meal === dMeal)
       .map(x => x.sort ?? 0)) + 1;
   }
   if (!Object.keys(patch).length) { render(); return; }
